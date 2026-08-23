@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <h2>Search</h2>
+
+    {% if query %}
+        <p class="text-muted">
+            Results for "{{ query }}"
+        </p>
+    {% endif %}
+
+    {% if users %}
+
+        <div class="list-group">
+
+            {% for user in users %}
+
+                <a href="{% url 'profile' user.username %}"
+                   class="list-group-item list-group-item-action">
+
+                    <strong>@{{ user.username }}</strong>
+
+                </a>
+
+            {% endfor %}
+
+        </div>
+
+    {% elif query %}
+
+        <p class="text-muted">
+            No users found.
+        </p>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

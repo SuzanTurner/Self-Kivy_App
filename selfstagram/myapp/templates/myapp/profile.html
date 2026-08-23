@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .profile-container {
+        max-width: 1000px;
+        margin: 40px auto;
+    }
+
+    .profile-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .profile-username {
+        font-size: 32px;
+        font-weight: 600;
+    }
+
+    .profile-stats {
+        color: #666;
+        margin-top: 10px;
+    }
+
+    .layout-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        margin-bottom: 15px;
+    }
+
+    .photo-grid {
+        display: flex;
+        flex-wrap: wrap;
+        margin: -8px;
+    }
+
+    .grid-item {
+        padding: 8px;
+    }
+
+    .grid-1 .grid-item {
+        width: 100%;
+    }
+
+    .grid-2 .grid-item {
+        width: 50%;
+    }
+
+    .grid-3 .grid-item {
+        width: 33.333%;
+    }
+
+    .post-card {
+        margin-bottom: 10px;
+    }
+
+    .post-image {
+        width: 100%;
+        max-height: 700px;
+        object-fit: contain;
+        background: #f5f5f5;
+    }
+
+    .username-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .username-link:hover {
+        text-decoration: underline;
+    }
+
+    .comment {
+        margin-bottom: 6px;
+    }
+</style>
+
+
+<div class="container profile-container">
+
+    <!-- PROFILE HEADER -->
+
+    <div class="profile-header">
+
+        <div class="profile-username">
+            @{{ profile_user.username }}
+        </div>
+
+        <div class="profile-stats">
+            {{ img|length }} post{{ img|length|pluralize }}
+        </div>
+
+    </div>
+
+    {% if request.user != profile_user %}
+
+        {% if is_following %}
+            <form method="POST" action="{% url 'unfollow_user' profile_user.id %}">
+                {% csrf_token %}
+                <button type="submit">
+                    Following
+                </button>
+            </form>
+        {% else %}
+            <form method="POST" action="{% url 'follow_user' profile_user.id %}">
+                {% csrf_token %}
+                <button type="submit">
+                    Follow
+                </button>
+            </form>
+        {% endif %}
+
+    {% endif %}
+
+
+    <!-- LAYOUT CONTROLS -->
+
+    <div class="layout-buttons">
+
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="setGrid(1)">
+            1
+        </button>
+
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="setGrid(2)">
+            2
+        </button>
+
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="setGrid(3)">
+            3
+        </button>
+
+    </div>
+
+
+    <!-- USER POSTS -->
+
+    {% if img %}
+
+        <div id="photoGrid" class="photo-grid grid-1">
+
+            {% for image in img %}
+
+                <div class="grid-item">
+
+                    <div class="card post-card">
+
+                        <!-- USERNAME -->
+
+                        <div class="card-body">
+
+                            <h5>
+                                <a href="{% url 'profile' image.user.username %}"
+                                   class="username-link">
+                                    {{ image.user.username }}
+                                </a>
+                            </h5>
+
+                            <small class="text-muted">
+                                {{ image.date|date:"M d, Y · g:i A" }}
+                            </small>
+
+                        </div>
+
+
+                        <!-- PHOTO -->
+
+                        <img src="{{ image.photo.url }}"
+                             class="post-image"
+                             alt="Photo uploaded by {{ image.user.username }}">
+
+
+                        <!-- LIKES + COMMENTS -->
+
+                        <div class="card-body">
+
+                            <!-- LIKE BUTTON -->
+
+                            <form method="POST"
+                                  action="{% url 'toggle_like' image.id %}"
+                                  class="d-inline">
+
+                                {% csrf_token %}
+
+                                {% if image.id in liked_image_ids %}
+
+                                    <button type="submit"
+                                            class="btn btn-danger btn-sm">
+                                        ❤️ Unlike
+                                    </button>
+
+                                {% else %}
+
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm">
+                                        🤍 Like
+                                    </button>
+
+                                {% endif %}
+
+                            </form>
+
+                            <span class="ms-2">
+                                {{ image.likes.count }}
+                                like{{ image.likes.count|pluralize }}
+                            </span>
+
+
+                            <hr>
+
+
+                            <!-- COMMENTS -->
+
+                            {% for comment in image.comments.all %}
+
+                                <div class="comment">
+
+                                    <strong>
+                                        {{ comment.user.username }}
+                                    </strong>
+
+                                    {{ comment.text }}
+
+                                </div>
+
+                            {% empty %}
+
+                                <p class="text-muted">
+                                    No comments yet.
+                                </p>
+
+                            {% endfor %}
+
+
+                            <!-- ADD COMMENT -->
+
+                            <form method="POST"
+                                  action="{% url 'add_comment' image.id %}"
+                                  class="mt-3">
+
+                                {% csrf_token %}
+
+                                <div class="input-group">
+
+                                    <input type="text"
+                                           name="text"
+                                           class="form-control"
+                                           placeholder="Add a comment..."
+                                           maxlength="500"
+                                           required>
+
+                                    <button type="submit"
+                                            class="btn btn-primary">
+                                        Comment
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="alert alert-secondary text-center">
+
+            {{ profile_user.username }}
+            hasn't uploaded any photos yet.
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+<script>
+    function setGrid(columns) {
+
+        const grid = document.getElementById("photoGrid");
+
+        grid.classList.remove(
+            "grid-1",
+            "grid-2",
+            "grid-3"
+        );
+
+        grid.classList.add("grid-" + columns);
+    }
+</script>
+
+{% endblock %}
