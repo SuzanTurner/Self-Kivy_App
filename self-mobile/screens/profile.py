@@ -4,6 +4,7 @@ from kivy.uix.image import AsyncImage
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.metrics import dp
+from kivy.uix.button import Button
 
 from widgets.post_thumbnail import PostThumbnail
 
@@ -37,6 +38,12 @@ class ProfileScreen(BoxLayout):
                 )
             )
             return
+        self.profile_id = data["id"]
+
+        self.is_following = data.get(
+            "is_following",
+            False
+        )
 
         # -------------------------
         # SCROLLABLE PROFILE
@@ -92,6 +99,30 @@ class ProfileScreen(BoxLayout):
                 height=dp(45)
             )
         )
+
+        # -------------------------
+# FOLLOW BUTTON
+# -------------------------
+
+        if self.username:
+
+            self.follow_button = Button(
+                text=(
+                    "Following"
+                    if self.is_following
+                    else "Follow"
+                ),
+                size_hint_y=None,
+                height=dp(50)
+            )
+
+            self.follow_button.bind(
+                on_press=self.toggle_follow
+            )
+
+            content.add_widget(
+                self.follow_button
+            )
 
         # -------------------------
         # BIO
@@ -172,3 +203,27 @@ class ProfileScreen(BoxLayout):
         scroll.add_widget(content)
 
         self.add_widget(scroll)
+    
+    def toggle_follow(self, *args):
+
+        if self.is_following:
+
+            success, data = self.api.unfollow_user(
+                self.profile_id
+            )
+
+        else:
+
+            success, data = self.api.follow_user(
+                self.profile_id
+            )
+
+        if success:
+
+            self.is_following = not self.is_following
+
+            self.follow_button.text = (
+                "Following"
+                if self.is_following
+                else "Follow"
+            )

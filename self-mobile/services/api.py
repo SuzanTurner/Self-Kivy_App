@@ -130,3 +130,89 @@ class API:
             return False, {
                 "detail": str(e)
             }
+        
+    def search_users(self, query):
+        if not self.access_token:
+            return False, {"detail": "Not authenticated"}
+
+        try:
+            response = requests.get(
+                f"{BASE_URL}/api/search/",
+                params={"q": query},
+                headers={
+                    "Authorization": f"Bearer {self.access_token}"
+                },
+                timeout=10,
+            )
+
+            if response.status_code != 200:
+                try:
+                    return False, response.json()
+                except Exception:
+                    return False, {
+                        "detail": response.text
+                    }
+
+            return True, response.json()
+
+        except Exception as e:
+            return False, {
+                "detail": str(e)
+            }
+            
+    def follow_user(self, user_id):
+        if not self.access_token:
+            return False, {"detail": "Not authenticated"}
+
+        try:
+            response = requests.post(
+                f"{BASE_URL}/api/users/{user_id}/follow/",
+                headers={
+                    "Authorization": f"Bearer {self.access_token}"
+                },
+                timeout=10,
+            )
+
+            if response.status_code != 200:
+                try:
+                    return False, response.json()
+                except Exception:
+                    return False, {
+                        "detail": response.text
+                    }
+
+            return True, response.json()
+
+        except Exception as e:
+            return False, {
+                "detail": str(e)
+            }
+
+
+    def unfollow_user(self, user_id):
+        if not self.access_token:
+            return False, {"detail": "Not authenticated"}
+
+        try:
+            response = requests.delete(
+                f"{BASE_URL}/api/users/{user_id}/follow/",
+                headers={
+                    "Authorization": f"Bearer {self.access_token}"
+                },
+                timeout=10,
+            )
+
+            if response.status_code != 200:
+                try:
+                    return False, response.json()
+                except Exception:
+                    return False, {
+                        "detail": response.text
+                    }
+
+            return True, response.json()
+
+        except Exception as e:
+            return False, {
+                "detail": str(e)
+            }

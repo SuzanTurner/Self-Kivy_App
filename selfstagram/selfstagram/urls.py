@@ -31,4 +31,5 @@ urlpatterns = [
     path("api/users/<int:user_id>/follow/",views.FollowAPIView.as_view(),name="api_follow"),
     path("api/users/<int:user_id>/unfollow/",views.UnfollowAPIView.as_view(),name="api_unfollow"),
     path("api/posts/",views.CreatePostAPIView.as_view(),name="api_create_post"),
+    path("api/search/", views.SearchUsersAPIView.as_view(), name="api_search_users"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

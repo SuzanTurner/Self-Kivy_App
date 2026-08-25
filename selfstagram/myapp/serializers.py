@@ -147,3 +147,38 @@ class ProfilePostSerializer(serializers.ModelSerializer):
             )
 
         return obj.photo.url
+    
+class SearchUserSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+    bio = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "profile_picture",
+            "bio",
+        ]
+
+    def get_profile_picture(self, obj):
+        request = self.context.get("request")
+
+        if not hasattr(obj, "profile"):
+            return None
+
+        if not obj.profile.profile_picture:
+            return None
+
+        if request:
+            return request.build_absolute_uri(
+                obj.profile.profile_picture.url
+            )
+
+        return obj.profile.profile_picture.url
+
+    def get_bio(self, obj):
+        if not hasattr(obj, "profile"):
+            return ""
+
+        return obj.profile.bio

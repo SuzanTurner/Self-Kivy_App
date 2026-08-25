@@ -95,14 +95,15 @@ class MainScreen(BoxLayout):
     # -------------------------
     # SEARCH
     # -------------------------
-
     def show_search(self, *args):
+        from screens.search import SearchScreen
+
         self.content.clear_widgets()
 
         self.content.add_widget(
-            Label(
-                text="Search",
-                font_size=dp(30)
+            SearchScreen(
+                api=self.api,
+                on_profile_click=self.show_profile
             )
         )
 

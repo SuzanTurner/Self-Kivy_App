@@ -13,8 +13,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .serializers import ImageSerializer, UserSerializer, CreateImageSerializer
+from .serializers import ImageSerializer, SearchUserSerializer, UserSerializer, CreateImageSerializer
 from rest_framework import status
+
+from rapidfuzz import process, fuzz
 
 def register(request):
     if request.method == "POST":
@@ -174,6 +176,85 @@ def search_users(request):
             "users": users,
         },
     )
+
+class SearchUsersAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.GET.get("q", "").strip()
+
+        if not query:
+            return Response([])
+
+        # -------------------------
+        # NORMAL SEARCH
+        # -------------------------
+
+        users = list(
+            User.objects.filter(
+                username__icontains=query
+            ).order_by("username")
+        )
+
+        if users:
+            serializer = SearchUserSerializer(
+                users,
+                many=True,
+                context={"request": request}
+            )
+
+            return Response(serializer.data)
+
+        # -------------------------
+        # FUZZY SEARCH
+        # -------------------------
+
+        usernames = list(
+            User.objects.values_list(
+                "username",
+                flat=True
+            )
+        )
+
+        matches = process.extract(
+            query,
+            usernames,
+            scorer=fuzz.WRatio,
+            limit=5,
+            score_cutoff=70
+        )
+
+        matched_usernames = [
+            match[0]
+            for match in matches
+        ]
+
+        if not matched_usernames:
+            return Response([])
+
+        matched_users = User.objects.filter(
+            username__in=matched_usernames
+        )
+
+        # Preserve fuzzy ranking
+        user_map = {
+            user.username: user
+            for user in matched_users
+        }
+
+        ordered_users = [
+            user_map[username]
+            for username in matched_usernames
+            if username in user_map
+        ]
+
+        serializer = SearchUserSerializer(
+            ordered_users,
+            many=True,
+            context={"request": request}
+        )
+
+        return Response(serializer.data)
 
 @login_required
 def delete_image(request, image_id):
@@ -350,4 +431,43 @@ class CreatePostAPIView(APIView):
         return Response(
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
+        )
+    
+class FollowAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        target_user = get_object_or_404(
+            User,
+            id=user_id
+        )
+
+        if target_user == request.user:
+            return Response(
+                {"detail": "You cannot follow yourself."},
+                status=400
+            )
+
+        Follow.objects.get_or_create(
+            follower=request.user,
+            following=target_user
+        )
+
+        return Response(
+            {"following": True}
+        )
+
+    def delete(self, request, user_id):
+        target_user = get_object_or_404(
+            User,
+            id=user_id
+        )
+
+        Follow.objects.filter(
+            follower=request.user,
+            following=target_user
+        ).delete()
+
+        return Response(
+            {"following": False}
         )
